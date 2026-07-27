@@ -1,0 +1,9 @@
+node_modules
+dist
+test-results
+playwright-report
+allure-results
+allure-report
+wdio-logs
+apps/sql/db/*.sqlite3
+package-lock.json

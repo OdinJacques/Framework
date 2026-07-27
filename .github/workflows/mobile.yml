@@ -1,0 +1,50 @@
+name: Mobile (Appium)
+
+# Not run on every PR: GitHub-hosted runners have no real Android device, and
+# emulator boot + Appium session time (5-10+ min) plus inherent flakiness make
+# this a poor PR gate. Runs manually or nightly instead; local runs against a
+# real emulator/device (see apps/mobile/config/android.config.ts) remain the
+# primary way to iterate on mobile tests.
+on:
+  workflow_dispatch: {}
+  schedule:
+    - cron: '0 6 * * *'
+
+jobs:
+  mobile:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 24
+          cache: npm
+      - run: npm ci
+
+      - name: Enable KVM for the emulator
+        run: |
+          echo 'KERNEL=="kvm", GROUP="kvm", MODE="0666", OPTIONS+="static_node=kvm"' | sudo tee /etc/udev/rules.d/99-kvm4all.rules
+          sudo udevadm control --reload-rules
+          sudo udevadm trigger --name-match=kvm
+
+      - name: Run mobile suite on Android emulator
+        uses: reactivecircus/android-emulator-runner@v2
+        with:
+          api-level: 33
+          target: google_apis
+          arch: x86_64
+          profile: pixel_6
+          emulator-boot-timeout: 900
+          script: |
+            npx appium --base-path /wd/hub --log-timestamp &
+            APPIUM_PID=$!
+            npx wait-on tcp:4723 -t 60000
+            npm run test:mobile
+            kill $APPIUM_PID
+
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: mobile-wdio-logs
+          path: apps/mobile/wdio-logs/
+          retention-days: 7

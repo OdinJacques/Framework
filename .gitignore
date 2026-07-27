@@ -1,0 +1,37 @@
+# Dependencies
+node_modules/
+
+# Build output
+dist/
+*.tsbuildinfo
+
+# Env
+.env
+.env.local
+
+# Playwright
+apps/web/test-results/
+apps/web/playwright-report/
+apps/web/.cache/
+apps/api/test-results/
+apps/api/playwright-report/
+apps/api/.cache/
+
+# WebdriverIO / Appium
+apps/mobile/allure-results/
+apps/mobile/allure-report/
+apps/mobile/wdio-logs/
+
+# SQL suite
+apps/sql/db/*.sqlite3
+apps/sql/db/*.sqlite3-journal
+
+# Editors / OS
+.vscode/*
+!.vscode/extensions.json
+.DS_Store
+Thumbs.db
+
+# Logs
+*.log
+npm-debug.log*
