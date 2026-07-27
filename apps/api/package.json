@@ -1,0 +1,18 @@
+{
+  "name": "@framework/api",
+  "private": true,
+  "version": "1.0.0",
+  "scripts": {
+    "test": "playwright test",
+    "report": "playwright show-report",
+    "typecheck": "tsc --noEmit"
+  },
+  "dependencies": {
+    "@framework/config": "*",
+    "@framework/shared-types": "*",
+    "@framework/test-data": "*"
+  },
+  "devDependencies": {
+    "@playwright/test": "^1.49.1"
+  }
+}
