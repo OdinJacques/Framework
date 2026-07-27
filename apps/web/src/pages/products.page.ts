@@ -1,4 +1,4 @@
-import type { Locator, Page } from '@playwright/test';
+import { expect, type Locator, type Page } from '@playwright/test';
 import { BasePage } from './base.page';
 
 export class ProductsPage extends BasePage {
@@ -28,6 +28,7 @@ export class ProductsPage extends BasePage {
 
   async addProductToCartByName(name: string): Promise<void> {
     const card = this.productCards.filter({ hasText: name });
+    await expect(card, `Product "${name}" not found on the products page`).toHaveCount(1);
     await card.hover();
     await card.locator('.add-to-cart').first().click();
     // automationexercise.com shows a "Continue Shopping" modal after adding to cart.

@@ -23,11 +23,14 @@ apps/
   sql/       SQLite schema/seed/query test suite
 packages/
   shared-types/  Domain interfaces (Product, User, Brand, Order)
-  config/        Env loading + validation, shared across all apps
+  config/        Env loading + validation, shared by web + api (not mobile/sql)
   test-data/     Canonical fixtures (demo user, sample products) shared by web + api
 .github/workflows/
   ci.yml       lint/typecheck + web + api + sql, on push/PR
   mobile.yml   Android emulator job, manual + nightly only
+docs/
+  ARCHITECTURE.md   Why the framework is structured the way it is
+  changes/          Change log — one entry per non-trivial change (see docs/changes/README.md)
 ```
 
 ## Prerequisites
@@ -76,24 +79,25 @@ Runs entirely offline against an in-memory SQLite database seeded from `apps/sql
 
 ## Environment Variables
 
-Defined in `.env` (see `.env.example`), loaded and validated by `packages/config`:
+Templated in `.env.example`. `WEB_BASE_URL`, `API_BASE_URL`, and `DEMO_USER_*` are loaded and validated by `packages/config` (a zod schema, see `CLAUDE.md`) and consumed via `.env`. `APPIUM_HOST`/`APPIUM_PORT` are **not** wired through `packages/config` or `.env` loading — `apps/mobile` has no `dotenv` dependency, and `apps/mobile/config/android.config.ts` reads them straight off `process.env` with plain JS fallbacks. In practice that means setting them in `.env` has no effect for the mobile suite; export them in your shell instead if you need non-default values.
 
 | Variable | Purpose |
 |---|---|
 | `WEB_BASE_URL` | Base URL for the web suite (default: `https://automationexercise.com`) |
 | `API_BASE_URL` | Base URL for the API suite (default: `https://automationexercise.com/api/` — the trailing slash matters, see `apps/api/src/clients/api-client.ts`) |
 | `DEMO_USER_NAME` / `DEMO_USER_EMAIL` / `DEMO_USER_PASSWORD` | Shared demo user used by both the web login flow and API auth endpoints. The account must exist on the live site (create it once via the signup flow) for positive-login scenarios to work. |
-| `APPIUM_HOST` / `APPIUM_PORT` | Appium server connection used by the mobile suite |
+| `APPIUM_HOST` / `APPIUM_PORT` | Appium server connection used by the mobile suite (shell env vars, not `.env` — see note above; defaults: `localhost` / `4723`) |
 
 ## POM / API Object Model Conventions
 
-- **Web & mobile**: each page is a class extending `BasePage`, owns its own locators as private fields, and exposes action methods (`login()`, `searchProduct()`) and query methods (`getVisibleProductNames()`). Specs consume page objects through a fixture (`apps/web/src/fixtures/pages.fixture.ts`) rather than instantiating them directly.
+- **Web & mobile**: each page is a class extending `BasePage`, owns its own locators as private fields, and exposes action methods (`login()`, `searchProduct()`) and query methods (`getVisibleProductNames()`). Web specs consume page objects through a fixture (`apps/web/src/fixtures/pages.fixture.ts`); mobile specs instantiate page objects directly — there's no fixture layer there, since the driver/session comes from `apps/mobile/wdio.conf.ts` instead.
 - **API**: the equivalent pattern is a `*.service.ts` per resource family (`products.service.ts`, `brands.service.ts`, `auth.service.ts`), each wrapping a shared `ApiClient` and returning typed `@framework/shared-types` entities instead of raw JSON.
 - Add a new page/service by following the existing files in the same directory — no separate locators file; locators live alongside the methods that use them.
 
 ## CI/CD
 
-- **`ci.yml`** runs on every push/PR to `main`: lint + typecheck, then web, API, and SQL suites in parallel jobs. Web/API failures upload their Playwright HTML report as a workflow artifact.
+- **`ci.yml`** runs on every push/PR to `main`: lint + typecheck, then web, API, and SQL suites in parallel jobs. Web/API failures upload their Playwright HTML report as a workflow artifact; the SQL job uploads a JUnit report.
+- **`changelog-check`** (part of `ci.yml`, PRs only) fails the PR if it changes real code/config without adding a new file under `docs/changes/` (see [Repo Structure](#repo-structure) and `docs/changes/README.md`). The failure message explains exactly what to add and how. Genuinely trivial changes (typos, formatting) can skip it by adding `[skip-changelog]` to the latest commit message.
 - **`mobile.yml`** runs only via manual dispatch or a nightly schedule. GitHub-hosted runners have no real Android device; while a KVM-backed emulator can boot on `ubuntu-latest`, boot time and flakiness make it unsuitable as a PR gate. Local runs against a real emulator/device remain the primary way to develop and validate mobile tests.
 
 ## Troubleshooting

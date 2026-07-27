@@ -13,6 +13,6 @@ test.describe('Cart', () => {
 
     await cartPage.open();
     const cartProductNames = await cartPage.getCartProductNames();
-    expect(cartProductNames.some((name) => name.includes(product.name))).toBe(true);
+    expect(cartProductNames).toEqual(expect.arrayContaining([expect.stringContaining(product.name)]));
   });
 });

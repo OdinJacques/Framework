@@ -14,7 +14,7 @@ test.describe('Product consistency (web side)', () => {
       await productsPage.searchProduct(product.name);
 
       const visibleNames = await productsPage.getVisibleProductNames();
-      expect(visibleNames.some((name) => name.includes(product.name))).toBe(true);
+      expect(visibleNames).toEqual(expect.arrayContaining([expect.stringContaining(product.name)]));
     });
   }
 });

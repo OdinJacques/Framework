@@ -20,6 +20,6 @@ test.describe('Products API', () => {
     const [sample] = sampleProducts;
     const results = await productsService.searchProducts(sample.name);
 
-    expect(results.some((p) => p.name === sample.name)).toBe(true);
+    expect(results.map((p) => p.name)).toContain(sample.name);
   });
 });
