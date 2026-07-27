@@ -10,9 +10,17 @@ on:
   schedule:
     - cron: '0 6 * * *'
 
+permissions:
+  contents: read
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
 jobs:
   mobile:
     runs-on: ubuntu-latest
+    timeout-minutes: 45
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-node@v4
@@ -40,7 +48,9 @@ jobs:
             APPIUM_PID=$!
             npx wait-on tcp:4723 -t 60000
             npm run test:mobile
-            kill $APPIUM_PID
+            TEST_EXIT_CODE=$?
+            kill $APPIUM_PID || true
+            exit $TEST_EXIT_CODE
 
       - uses: actions/upload-artifact@v4
         if: always()

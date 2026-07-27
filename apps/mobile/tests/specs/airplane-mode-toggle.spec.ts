@@ -10,11 +10,18 @@ describe('Network & internet', () => {
     await homePage.openNetworkInternet();
 
     const initialState = await networkPage.isAirplaneModeEnabled();
-    await networkPage.toggleAirplaneMode();
-    const toggledState = await networkPage.isAirplaneModeEnabled();
-    expect(toggledState).not.toBe(initialState);
-
-    // restore original state so the suite is idempotent across runs
-    await networkPage.toggleAirplaneMode();
+    // Restoring in `finally` matters here: this suite runs unattended
+    // (nightly/manual only), so a failed assertion must not leave airplane
+    // mode toggled on for every subsequent run on the same emulator/device.
+    try {
+      await networkPage.toggleAirplaneMode();
+      const toggledState = await networkPage.isAirplaneModeEnabled();
+      expect(toggledState).not.toBe(initialState);
+    } finally {
+      const currentState = await networkPage.isAirplaneModeEnabled();
+      if (currentState !== initialState) {
+        await networkPage.toggleAirplaneMode();
+      }
+    }
   });
 });

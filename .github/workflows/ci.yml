@@ -6,9 +6,95 @@ on:
   pull_request:
     branches: [main]
 
+permissions:
+  contents: read
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
 jobs:
+  changelog-check:
+    # Only meaningful on a PR (needs a base ref to diff against); a direct
+    # push to main has already merged, so there's nothing left to gate.
+    if: github.event_name == 'pull_request'
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - name: Check for a docs/changes/ entry
+        run: |
+          git fetch origin "${{ github.base_ref }}"
+
+          HEAD_MSG=$(git log -1 --format=%B)
+          if echo "$HEAD_MSG" | grep -qF '[skip-changelog]'; then
+            echo "Skipping: [skip-changelog] found in the latest commit message."
+            exit 0
+          fi
+
+          CHANGED_FILES=$(git diff --name-only "origin/${{ github.base_ref }}...HEAD")
+
+          RELEVANT_FILES=$(echo "$CHANGED_FILES" | grep -vE '^(package-lock\.json|\.gitignore|\.prettierignore|docs/changes/)' || true)
+          if [ -z "$RELEVANT_FILES" ]; then
+            echo "No changelog-relevant files changed. Skipping."
+            exit 0
+          fi
+
+          NEW_ENTRY=$(echo "$CHANGED_FILES" | grep -E '^docs/changes/.+\.md$' | grep -v '^docs/changes/README\.md$' || true)
+          if [ -n "$NEW_ENTRY" ]; then
+            echo "Found a docs/changes/ entry: $NEW_ENTRY"
+            exit 0
+          fi
+
+          {
+          cat <<'MSG'
+          ## Missing changelog entry
+
+          This PR changes code/config but doesn't include a new file under `docs/changes/`.
+
+          This repo tracks non-trivial changes in a lightweight change log so future contributors
+          (human or AI) can understand past decisions without digging through git history.
+
+          **To fix this:**
+
+          1. Create a new file: `docs/changes/YYYY-MM-DD-short-kebab-slug.md`
+             (e.g. `docs/changes/2026-07-27-fix-login-timeout.md`)
+          2. Use this template:
+
+             ```markdown
+             # <Short title>
+
+             **Date:** YYYY-MM-DD
+
+             ## Summary
+             What changed and why, in a few sentences.
+
+             ## Files changed
+             - `path/to/file.ts` (around line N-M at the time of this change): what changed there and why
+
+             ## Rationale
+             (if not obvious from Summary) — why this approach over alternatives.
+             ```
+
+          Full rules and more examples: `docs/changes/README.md`
+
+          **Is this change genuinely trivial** (typo, formatting, a one-line tweak)? Add
+          `[skip-changelog]` to your latest commit message and push again to skip this check.
+
+          <details><summary>Changed files in this PR</summary>
+          MSG
+          echo "$CHANGED_FILES" | sed 's/^/- /'
+          echo ""
+          echo "</details>"
+          } | tee -a "$GITHUB_STEP_SUMMARY"
+
+          exit 1
+
   lint-and-typecheck:
     runs-on: ubuntu-latest
+    timeout-minutes: 15
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-node@v4
@@ -21,6 +107,7 @@ jobs:
 
   web:
     runs-on: ubuntu-latest
+    timeout-minutes: 20
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-node@v4
@@ -41,6 +128,7 @@ jobs:
 
   api:
     runs-on: ubuntu-latest
+    timeout-minutes: 20
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-node@v4
@@ -60,6 +148,7 @@ jobs:
 
   sql:
     runs-on: ubuntu-latest
+    timeout-minutes: 15
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-node@v4
@@ -68,3 +157,9 @@ jobs:
           cache: npm
       - run: npm ci
       - run: npm run test:sql
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: sql-test-results
+          path: apps/sql/test-results/
+          retention-days: 7

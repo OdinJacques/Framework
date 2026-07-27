@@ -9,6 +9,10 @@ export const config: WebdriverIO.Config = {
   capabilities: [wdOpts.capabilities],
   maxInstances: 1,
 
+  // Without this, nothing writes to disk and CI's wdio-logs artifact upload
+  // silently has nothing to collect on failure.
+  outputDir: './wdio-logs',
+
   specs: ['./tests/specs/**/*.spec.ts'],
 
   framework: 'mocha',

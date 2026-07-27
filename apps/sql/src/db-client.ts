@@ -3,8 +3,27 @@ import path from 'node:path';
 import type { DatabaseSync } from 'node:sqlite';
 
 // Loaded via process.getBuiltinModule rather than `import 'node:sqlite'` because
-// Vite/vite-node's builtin-module list predates node:sqlite and mis-resolves it.
-const { DatabaseSync: DatabaseSyncCtor } = process.getBuiltinModule('node:sqlite');
+// Vite/vite-node's builtin list predates node:sqlite and mis-resolves it.
+const REQUIRED_NODE_VERSION = 'Node >= 22.5 (this repo targets Node 24+)';
+
+function loadSqliteModule(): typeof import('node:sqlite') {
+  if (typeof process.getBuiltinModule !== 'function') {
+    throw new Error(
+      `node:sqlite is unavailable: process.getBuiltinModule doesn't exist on this runtime ` +
+        `(current: ${process.version}). Requires ${REQUIRED_NODE_VERSION}.`,
+    );
+  }
+  const sqliteModule = process.getBuiltinModule('node:sqlite');
+  if (!sqliteModule?.DatabaseSync) {
+    throw new Error(
+      `node:sqlite is unavailable or missing DatabaseSync on this runtime ` +
+        `(current: ${process.version}). Requires ${REQUIRED_NODE_VERSION}.`,
+    );
+  }
+  return sqliteModule;
+}
+
+const { DatabaseSync: DatabaseSyncCtor } = loadSqliteModule();
 
 const SCHEMA_PATH = path.resolve(__dirname, '../db/schema.sql');
 

@@ -25,6 +25,7 @@ apps/mobile/wdio-logs/
 # SQL suite
 apps/sql/db/*.sqlite3
 apps/sql/db/*.sqlite3-journal
+apps/sql/test-results/
 
 # Editors / OS
 .vscode/*

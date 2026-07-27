@@ -1,0 +1,7 @@
+# Cursor rules
+
+This repo's AI-assistant conventions live in `CLAUDE.md` — read it before editing.
+
+Quick orientation: a TypeScript npm-workspaces monorepo for QA automation (Playwright web + API,
+WebdriverIO/Appium mobile, SQLite-based SQL suite) targeting automationexercise.com. See
+`docs/ARCHITECTURE.md` for the reasoning behind the structure and `README.md` for setup/run commands.
