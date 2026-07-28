@@ -1,5 +1,5 @@
 import type { Product } from '@framework/shared-types';
-import { ApiClient } from '../clients/api-client';
+import { ApiClient } from '../clients/apiClient';
 
 interface RawProduct {
   id: number;

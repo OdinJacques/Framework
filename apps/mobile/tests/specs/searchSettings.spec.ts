@@ -1,6 +1,6 @@
 import { expect } from '@wdio/globals';
-import { SettingsHomePage } from '../../src/pages/settings-home.page';
-import { SearchSettingsPage } from '../../src/pages/search-settings.page';
+import { SettingsHomePage } from '../../src/pages/settingsHomePage';
+import { SearchSettingsPage } from '../../src/pages/searchSettingsPage';
 
 describe('Settings search', () => {
   it('finds a result when searching for "Wi-Fi"', async () => {

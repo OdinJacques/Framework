@@ -1,4 +1,4 @@
-import { ApiClient } from '../clients/api-client';
+import { ApiClient } from '../clients/apiClient';
 
 interface AuthResponseBody {
   responseCode: number;

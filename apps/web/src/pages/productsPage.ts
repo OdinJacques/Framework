@@ -1,5 +1,6 @@
 import { expect, type Locator, type Page } from '@playwright/test';
-import { BasePage } from './base.page';
+import { BasePage } from './basePage';
+import { productsPageLocators } from '../locators/productsPage.locators';
 
 export class ProductsPage extends BasePage {
   private readonly searchInput: Locator;
@@ -8,9 +9,9 @@ export class ProductsPage extends BasePage {
 
   constructor(page: Page) {
     super(page);
-    this.searchInput = page.locator('#search_product');
-    this.searchButton = page.locator('#submit_search');
-    this.productCards = page.locator('.features_items .product-image-wrapper');
+    this.searchInput = page.locator(productsPageLocators.searchInput);
+    this.searchButton = page.locator(productsPageLocators.searchButton);
+    this.productCards = page.locator(productsPageLocators.productCards);
   }
 
   async open(): Promise<void> {
@@ -23,15 +24,17 @@ export class ProductsPage extends BasePage {
   }
 
   async getVisibleProductNames(): Promise<string[]> {
-    return this.productCards.locator('.productinfo p').allTextContents();
+    return this.productCards.locator(productsPageLocators.productInfoText).allTextContents();
   }
 
   async addProductToCartByName(name: string): Promise<void> {
     const card = this.productCards.filter({ hasText: name });
     await expect(card, `Product "${name}" not found on the products page`).toHaveCount(1);
     await card.hover();
-    await card.locator('.add-to-cart').first().click();
-    // automationexercise.com shows a "Continue Shopping" modal after adding to cart.
+    await card.locator(productsPageLocators.addToCartButton).first().click();
+    // automationexercise.com shows a "Continue Shopping" modal after adding
+    // to cart. Kept as a direct getByRole call — see homePage.ts for why
+    // accessible-role locators aren't moved into the locators file.
     await this.page.getByRole('button', { name: 'Continue Shopping' }).click();
   }
 }

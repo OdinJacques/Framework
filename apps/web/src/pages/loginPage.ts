@@ -1,5 +1,6 @@
 import type { Locator, Page } from '@playwright/test';
-import { BasePage } from './base.page';
+import { BasePage } from './basePage';
+import { loginPageLocators } from '../locators/loginPage.locators';
 
 export class LoginPage extends BasePage {
   private readonly loginEmailInput: Locator;
@@ -9,13 +10,10 @@ export class LoginPage extends BasePage {
 
   constructor(page: Page) {
     super(page);
-    this.loginEmailInput = page.locator('input[data-qa="login-email"]');
-    this.loginPasswordInput = page.locator('input[data-qa="login-password"]');
-    this.loginButton = page.locator('button[data-qa="login-button"]');
-    // Structural selector (the login form's red-styled error paragraph)
-    // rather than matching the exact wording — survives the site changing
-    // its copy, which an exact-text match wouldn't.
-    this.loginErrorText = page.locator('form[action="/login"] p[style*="color: red"]');
+    this.loginEmailInput = page.locator(loginPageLocators.loginEmailInput);
+    this.loginPasswordInput = page.locator(loginPageLocators.loginPasswordInput);
+    this.loginButton = page.locator(loginPageLocators.loginButton);
+    this.loginErrorText = page.locator(loginPageLocators.loginErrorText);
   }
 
   async open(): Promise<void> {
