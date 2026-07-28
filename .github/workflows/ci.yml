@@ -23,10 +23,18 @@ jobs:
     steps:
       - uses: actions/checkout@v4
         with:
+          # actions/checkout defaults to GitHub's synthetic test-merge commit
+          # for pull_request events (refs/pull/<PR>/merge), whose commit
+          # message is auto-generated — checking that out instead of the
+          # PR's real head is what the [skip-changelog] marker needs to find.
+          ref: ${{ github.event.pull_request.head.sha }}
           fetch-depth: 0
       - name: Check for a docs/changes/ entry
         run: |
-          git fetch origin "${{ github.base_ref }}"
+          if ! git fetch origin "${{ github.base_ref }}"; then
+            echo "::error::Failed to fetch base branch '${{ github.base_ref }}'. This looks like a transient CI/network issue, not a missing changelog entry — re-run the job."
+            exit 1
+          fi
 
           HEAD_MSG=$(git log -1 --format=%B)
           if echo "$HEAD_MSG" | grep -qF '[skip-changelog]'; then
@@ -36,7 +44,7 @@ jobs:
 
           CHANGED_FILES=$(git diff --name-only "origin/${{ github.base_ref }}...HEAD")
 
-          RELEVANT_FILES=$(echo "$CHANGED_FILES" | grep -vE '^(package-lock\.json|\.gitignore|\.prettierignore|docs/changes/)' || true)
+          RELEVANT_FILES=$(echo "$CHANGED_FILES" | grep -vE '^(package-lock\.json|\.gitignore|\.prettierignore)$|^docs/changes/' || true)
           if [ -z "$RELEVANT_FILES" ]; then
             echo "No changelog-relevant files changed. Skipping."
             exit 0

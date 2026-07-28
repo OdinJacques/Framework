@@ -9,7 +9,7 @@ A TypeScript npm-workspaces monorepo for QA automation, covering four discipline
 - **Web** (`apps/web`): Playwright Test, Page Object Model, targeting https://automationexercise.com
 - **API** (`apps/api`): Playwright Test's `request` context, API object model, targeting the same site's REST API
 - **Mobile** (`apps/mobile`): WebdriverIO + Appium, Page Object Model, targeting the native Android Settings app on an emulator
-- **SQL** (`apps/sql`): Node's built-in `node:sqlite` + Vitest, self-seeded offline database mirroring the same product/order domain
+- **SQL** (`apps/sql`): Node's built-in `node:sqlite` + Vitest, self-seeded offline database seeded from the same `packages/test-data` fixtures web/api use
 
 Web and API deliberately share a target and fixtures so the two suites cross-check each other. Mobile automates a native app, so it necessarily has its own POM, but follows the same conventions. Requires **Node 24+**.
 
@@ -24,7 +24,7 @@ apps/mobile           WebdriverIO + Appium suite (POM)
 apps/sql              SQLite schema/seed/query suite
 packages/shared-types  Domain interfaces (Product, User, Brand, Order)
 packages/config        Env loading + validation, shared by web + api (not mobile/sql — see gotchas)
-packages/test-data     Canonical fixtures (demo user, sample products) shared by web + api
+packages/test-data     Canonical fixtures (demo user, sample products) shared by web + api + sql
 .github/workflows/     ci.yml (lint/typecheck/web/api/sql, on push/PR), mobile.yml (manual + nightly)
 docs/changes/          Change log — one entry per non-trivial change (see "After finishing a non-trivial change" below)
 ```
@@ -39,7 +39,7 @@ Path aliases (`tsconfig.base.json`, inherited by every workspace's `tsconfig.jso
 - **Spec file location**: new tests go in that suite's `tests/specs/*.spec.ts` (web, api, mobile) or `apps/sql/tests/*.test.ts` (sql) — follow the naming of the existing files in the same directory (e.g. `product-search.spec.ts`, `auth.spec.ts`).
 - **`packages/config`'s shape**: a single validated `env` object (parsed by zod from `process.env`/`.env`), plus its `Env` type — no factory function, just `import { env } from '@framework/config'; env.WEB_BASE_URL`. The zod schema in `packages/config/src/index.ts` is the source of truth for what's valid/required, and also supplies defaults via `.default(...)` (e.g. `WEB_BASE_URL` defaults to `https://automationexercise.com`). Adding a new environment variable means updating **all three**: the zod schema, `.env.example`, and README's Environment Variables table (human-facing, easy to forget since nothing enforces it).
 - **SQL suite pattern**: a new test calls `createDatabase()` from `apps/sql/src/db-client.ts` (defaults to an in-memory DB) and, if it needs seeded rows, `seed(db)` from `apps/sql/db/seed.ts` — typically in `beforeEach`/`beforeAll`, so each test gets a fresh, isolated database.
-- **Shared fixtures**: cross-suite test data (demo user, sample products) lives in `packages/test-data`, not duplicated per-suite. If web and API both need to assert on the same data, they should import the same fixture rather than hardcoding values twice.
+- **Shared fixtures**: cross-suite test data (demo user, sample products) lives in `packages/test-data`, not duplicated per-suite. Web, API, and SQL all import it directly (`apps/sql/db/seed.ts` included) — if a suite needs to assert on the same data another suite uses, import the same fixture rather than hardcoding values twice.
 - **No build step for internal packages**: `@framework/shared-types`, `@framework/config`, `@framework/test-data` are consumed as TS source directly via path aliases in `tsconfig.base.json`. Don't add a `dist`/build step to them.
 - **Locators change between Android versions/OEM skins**: the mobile suite's locators target stock Android 13. If they don't resolve on a different emulator/device, that's expected — adjust rather than assuming the framework is broken.
 
@@ -51,7 +51,7 @@ Add an entry to `docs/changes/` (template and full rules in `docs/changes/README
 
 - **Playwright `APIRequestContext` + `baseURL` with a path segment**: a leading-slash request path resolves as an absolute path on the origin under WHATWG URL rules, silently dropping the `/api` segment of the base URL (e.g. `https://automationexercise.com/api/` + `/productsList` → `https://automationexercise.com/productsList`, the wrong URL). `ApiClient` (`apps/api/src/clients/api-client.ts`) normalizes this by stripping any leading slash before delegating — don't bypass it by calling `request` directly with a leading-slash path.
 - **`node:sqlite` and Vite/Vitest**: Vite's builtin-module list predates `node:sqlite`, so a plain `import { DatabaseSync } from 'node:sqlite'` gets mis-resolved by vite-node inside Vitest. `apps/sql/src/db-client.ts` works around this with `process.getBuiltinModule('node:sqlite')` for the runtime value, plus a type-only import for TS types. This is also why the repo requires **Node 24+** (an older Node lacks `node:sqlite` entirely or needs a flag).
-- **`apps/mobile` doesn't go through `packages/config` or `.env`**: unlike web/api/sql, the mobile suite has no `dotenv` dependency. `apps/mobile/config/android.config.ts` reads `APPIUM_HOST`/`APPIUM_PORT` directly off `process.env` with plain fallbacks (`localhost`/`4723`) — setting them in `.env` has no effect for this suite; they must be exported in the shell.
+- **`apps/mobile` never consumes `packages/config`'s `env` object, even though `APPIUM_HOST`/`APPIUM_PORT` are in its zod schema**: the schema includes them (for `.env.example` completeness), but nothing in `apps/mobile` imports `@framework/config` — it has no `dotenv` dependency at all. `apps/mobile/config/android.config.ts` reads `APPIUM_HOST`/`APPIUM_PORT` directly off `process.env` with plain fallbacks (`localhost`/`4723`) — setting them in `.env` has no effect for this suite; they must be exported in the shell.
 
 ## Commands
 
