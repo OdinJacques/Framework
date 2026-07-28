@@ -29,3 +29,7 @@ What changed and why, in a few sentences.
 ```
 
 Line references are a point-in-time snapshot, like a diff — they're not expected to stay accurate as the code around them changes later, and that's fine for a historical record. If a PR or commit description already covers this content well, reuse it rather than drafting the entry from scratch.
+
+## CI enforcement
+
+A `changelog-check` job in `.github/workflows/ci.yml` fails a PR that changes real code/config without a new file here. To skip it for a genuinely trivial change, add `[skip-changelog]` to your **last commit's message** before pushing — the check only reads the PR's most recent commit, not every commit in the PR. If your last commit doesn't have it, amend it (or add a small follow-up commit containing the marker) rather than relying on an earlier commit in the branch.

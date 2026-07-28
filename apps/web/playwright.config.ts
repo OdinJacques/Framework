@@ -7,6 +7,13 @@ export default defineConfig({
   forbidOnly: !!process.env.CI,
   retries: process.env.CI ? 2 : 0,
   reporter: [['html', { open: 'never' }], ['list']],
+  // Default is 5s — too tight given navigationTimeout below documents ~20s
+  // page loads observed on this network path. Without this, an assertion
+  // immediately after a slow navigation (e.g. login.spec.ts's expect.poll
+  // for the post-submit error) could fail well before the page even settles.
+  expect: {
+    timeout: 10_000,
+  },
   use: {
     baseURL: env.WEB_BASE_URL,
     trace: 'on-first-retry',

@@ -11,7 +11,7 @@ A single TypeScript monorepo covering front-end, API, mobile, and SQL test autom
 | Mobile (`apps/mobile`) | Appium + WebdriverIO, Page Object Model | Android Settings app (`com.android.settings`) on an emulator |
 | SQL (`apps/sql`) | Node's built-in `node:sqlite` + Vitest | Local, self-seeded SQLite DB modeled on the same product/order domain |
 
-Web and API intentionally target the **same site** and share fixtures (`packages/test-data`) so the two suites cross-check each other — e.g. a product visible in the storefront UI is also asserted present in the `/productsList` API response. Mobile automates a native app, so it necessarily has its own Page Object Model, but follows the same conventions. SQL runs fully offline against seed data shaped after the same domain (products/brands/categories/users/orders).
+Web and API intentionally target the **same site** and share fixtures (`packages/test-data`) so the two suites cross-check each other — e.g. a product visible in the storefront UI is also asserted present in the `/productsList` API response. SQL shares those same fixtures too (`apps/sql/db/seed.ts` seeds from the same demo user/sample products), just fully offline against a self-seeded in-memory database rather than a live connection. Mobile automates a native app in a genuinely unrelated domain (device settings, not e-commerce), so it necessarily has its own Page Object Model and no shared fixtures — it just follows the same conventions.
 
 ## Repo Structure
 
@@ -24,7 +24,7 @@ apps/
 packages/
   shared-types/  Domain interfaces (Product, User, Brand, Order)
   config/        Env loading + validation, shared by web + api (not mobile/sql)
-  test-data/     Canonical fixtures (demo user, sample products) shared by web + api
+  test-data/     Canonical fixtures (demo user, sample products) shared by web + api + sql
 .github/workflows/
   ci.yml       lint/typecheck + web + api + sql, on push/PR
   mobile.yml   Android emulator job, manual + nightly only
@@ -79,7 +79,7 @@ Runs entirely offline against an in-memory SQLite database seeded from `apps/sql
 
 ## Environment Variables
 
-Templated in `.env.example`. `WEB_BASE_URL`, `API_BASE_URL`, and `DEMO_USER_*` are loaded and validated by `packages/config` (a zod schema, see `CLAUDE.md`) and consumed via `.env`. `APPIUM_HOST`/`APPIUM_PORT` are **not** wired through `packages/config` or `.env` loading — `apps/mobile` has no `dotenv` dependency, and `apps/mobile/config/android.config.ts` reads them straight off `process.env` with plain JS fallbacks. In practice that means setting them in `.env` has no effect for the mobile suite; export them in your shell instead if you need non-default values.
+Templated in `.env.example`. `WEB_BASE_URL`, `API_BASE_URL`, `DEMO_USER_*`, and (for completeness) `APPIUM_HOST`/`APPIUM_PORT` are all present in `packages/config`'s zod schema (see `CLAUDE.md`) — but only the first three are actually *consumed* anywhere: `apps/web`/`apps/api` import `@framework/config`'s `env` object, `apps/mobile` never does. `apps/mobile` has no `dotenv` dependency at all, and `apps/mobile/config/android.config.ts` reads `APPIUM_HOST`/`APPIUM_PORT` straight off `process.env` with plain JS fallbacks instead. In practice that means setting them in `.env` has no effect for the mobile suite; export them in your shell instead if you need non-default values.
 
 | Variable | Purpose |
 |---|---|
@@ -96,13 +96,14 @@ Templated in `.env.example`. `WEB_BASE_URL`, `API_BASE_URL`, and `DEMO_USER_*` a
 
 ## CI/CD
 
-- **`ci.yml`** runs on every push/PR to `main`: lint + typecheck, then web, API, and SQL suites in parallel jobs. Web/API failures upload their Playwright HTML report as a workflow artifact; the SQL job uploads a JUnit report.
+- **`ci.yml`** runs on every push/PR to `main`: lint/typecheck, web, API, and SQL each run as independent parallel jobs (no job gates another — a lint failure doesn't stop the test jobs from running). Web and API always upload their Playwright HTML report as a workflow artifact, pass or fail; the SQL job always uploads a JUnit report the same way.
 - **`changelog-check`** (part of `ci.yml`, PRs only) fails the PR if it changes real code/config without adding a new file under `docs/changes/` (see [Repo Structure](#repo-structure) and `docs/changes/README.md`). The failure message explains exactly what to add and how. Genuinely trivial changes (typos, formatting) can skip it by adding `[skip-changelog]` to the latest commit message.
 - **`mobile.yml`** runs only via manual dispatch or a nightly schedule. GitHub-hosted runners have no real Android device; while a KVM-backed emulator can boot on `ubuntu-latest`, boot time and flakiness make it unsuitable as a PR gate. Local runs against a real emulator/device remain the primary way to develop and validate mobile tests.
 
 ## Troubleshooting
 
 - **Web/API test flakiness**: automationexercise.com is a real third-party site — expect occasional flakiness unrelated to the framework. Playwright retries automatically in CI (`retries: 2`).
+- **Exact-text assertions breaking**: beyond product catalog data (`packages/test-data`), a few tests assert on exact site copy — e.g. `login.page.ts`'s `"Your email or password is incorrect!"` and `auth.service.ts`'s `"not found"` substring. If the live site changes this wording, those tests fail for the same reason as a catalog change would: refresh the expected string from the live site.
 - **Mobile: Appium can't find the emulator**: confirm `adb devices` shows it before running tests, and that the serial matches `appium:udid` in `android.config.ts`.
 - **Mobile: element not found**: locators in `apps/mobile/src/pages` target the stock Android 13 Settings app; resource-ids and text can shift between Android versions/OEM skins, so adjust them to match your emulator/device.
 - **SQL suite state**: each test file gets a fresh in-memory database (see `apps/sql/src/db-client.ts`), so tests never depend on execution order or leftover state.

@@ -30,7 +30,7 @@ graph TD
     TD -->|demo user, sample products| API
     ST -->|Product, User, Brand, Order| API
 
-    TD -.->|catalog data mirrored, not imported| SQL[apps/sql<br/>node:sqlite + Vitest<br/>self-seeded, offline]
+    TD -->|demo user, sample products| SQL[apps/sql<br/>node:sqlite + Vitest<br/>self-seeded, offline]
 
     MOBILE[apps/mobile<br/>WebdriverIO/Appium + POM<br/>standalone — native app, no shared fixtures]
 
@@ -39,13 +39,13 @@ graph TD
     MOBILE -.->|Android Settings app| DEVICE((Android emulator/device))
 ```
 
-`apps/mobile` is intentionally disconnected from `packages/test-data` — it automates a native Android app, not a website, so there's no live product/user data to share. `apps/sql` mirrors the same domain (product/brand/category shapes) by hand in its seed script rather than importing `packages/test-data` directly, since the two need not stay byte-identical — the point is thematic consistency, not shared runtime state.
+`apps/mobile` is intentionally disconnected from `packages/test-data` — it automates a native Android app, not a website, so there's no live product/user data to share. `apps/sql`, by contrast, imports `packages/test-data` directly (`apps/sql/db/seed.ts` seeds from the same `demoUser`/`sampleProducts` used by web and API) — the point isn't independence, it's that all three suites assert against the exact same fixture values, so a catalog change is caught consistently everywhere. What SQL doesn't share is *runtime state*: it's still a fresh, self-seeded, in-memory database per test run, not a live connection to anything web/api touch.
 
 ## The "same page" design
 
 Web and API both target automationexercise.com and both import the same fixtures from `packages/test-data` (a demo user, a handful of known product names/ids). This makes cross-suite verification real rather than aspirational: `apps/web/tests/specs/product-consistency.spec.ts` asserts a sample product is visible in the storefront UI, and `apps/api/tests/specs/products.spec.ts` asserts the same product name is present in the `/productsList` response. Both read from the same fixture, so if the live site's catalog changes, both suites fail for the same traceable reason instead of silently drifting apart.
 
-Mobile and SQL couldn't literally share the same target — mobile automates a native app (there's no "page" to share), and SQL is a self-seeded offline database (there's no live schema to share). Both instead mirror the same *domain* (product/category/order shapes) so the framework stays conceptually consistent even where it can't be literally consistent.
+Mobile and SQL couldn't literally share the same *target* as web/api — mobile automates a native app (there's no "page" to share), and SQL is a self-seeded offline database (there's no live schema to share). SQL still shares the same *fixture values* (via `packages/test-data`), just not a live connection. Mobile shares neither — it's a genuinely unrelated domain (device settings, not e-commerce) — so it only follows the same POM conventions, not any actual data.
 
 ## Key decisions and trade-offs
 
