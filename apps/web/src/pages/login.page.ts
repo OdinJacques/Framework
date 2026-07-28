@@ -12,7 +12,10 @@ export class LoginPage extends BasePage {
     this.loginEmailInput = page.locator('input[data-qa="login-email"]');
     this.loginPasswordInput = page.locator('input[data-qa="login-password"]');
     this.loginButton = page.locator('button[data-qa="login-button"]');
-    this.loginErrorText = page.getByText('Your email or password is incorrect!');
+    // Structural selector (the login form's red-styled error paragraph)
+    // rather than matching the exact wording — survives the site changing
+    // its copy, which an exact-text match wouldn't.
+    this.loginErrorText = page.locator('form[action="/login"] p[style*="color: red"]');
   }
 
   async open(): Promise<void> {

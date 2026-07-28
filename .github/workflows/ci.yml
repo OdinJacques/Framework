@@ -28,6 +28,10 @@ jobs:
           # message is auto-generated — checking that out instead of the
           # PR's real head is what the [skip-changelog] marker needs to find.
           ref: ${{ github.event.pull_request.head.sha }}
+          # Full history, needed to compute a reliable merge-base for the
+          # diff below. Accepted trade-off: cost grows with repo history
+          # size; revisit with a bounded depth + fallback if this job ever
+          # becomes slow enough to matter.
           fetch-depth: 0
       - name: Check for a docs/changes/ entry
         run: |
