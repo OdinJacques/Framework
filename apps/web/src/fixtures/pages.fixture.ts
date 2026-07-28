@@ -1,8 +1,8 @@
 import { test as base } from '@playwright/test';
-import { HomePage } from '../pages/home.page';
-import { LoginPage } from '../pages/login.page';
-import { ProductsPage } from '../pages/products.page';
-import { CartPage } from '../pages/cart.page';
+import { HomePage } from '../pages/homePage';
+import { LoginPage } from '../pages/loginPage';
+import { ProductsPage } from '../pages/productsPage';
+import { CartPage } from '../pages/cartPage';
 
 interface PageFixtures {
   homePage: HomePage;

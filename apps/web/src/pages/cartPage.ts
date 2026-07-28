@@ -1,12 +1,13 @@
 import type { Locator, Page } from '@playwright/test';
-import { BasePage } from './base.page';
+import { BasePage } from './basePage';
+import { cartPageLocators } from '../locators/cartPage.locators';
 
 export class CartPage extends BasePage {
   private readonly cartRows: Locator;
 
   constructor(page: Page) {
     super(page);
-    this.cartRows = page.locator('#cart_info tbody tr');
+    this.cartRows = page.locator(cartPageLocators.cartRows);
   }
 
   async open(): Promise<void> {
@@ -14,7 +15,7 @@ export class CartPage extends BasePage {
   }
 
   async getCartProductNames(): Promise<string[]> {
-    return this.cartRows.locator('.cart_description h4 a').allTextContents();
+    return this.cartRows.locator(cartPageLocators.cartDescriptionLink).allTextContents();
   }
 
   async getItemCount(): Promise<number> {

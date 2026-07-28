@@ -1,4 +1,4 @@
-import { BasePage } from './base.page';
+import { BasePage } from './basePage';
 
 /**
  * Locators target the stock Android 13 Settings app UI. Resource-ids and

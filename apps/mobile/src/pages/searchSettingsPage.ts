@@ -1,5 +1,5 @@
 import { browser } from '@wdio/globals';
-import { BasePage } from './base.page';
+import { BasePage } from './basePage';
 
 export class SearchSettingsPage extends BasePage {
   private readonly searchInput = 'id=com.android.settings:id/search_src_text';

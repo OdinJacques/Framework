@@ -1,6 +1,6 @@
 import { describe, it, expect, beforeAll, afterAll } from 'vitest';
 import type { DatabaseSync } from 'node:sqlite';
-import { createDatabase } from '../src/db-client';
+import { createDatabase } from '../src/dbClient';
 
 describe('schema', () => {
   let db: DatabaseSync;

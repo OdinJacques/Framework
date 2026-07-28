@@ -1,6 +1,6 @@
 import { expect } from '@wdio/globals';
-import { SettingsHomePage } from '../../src/pages/settings-home.page';
-import { NetworkInternetPage } from '../../src/pages/network-internet.page';
+import { SettingsHomePage } from '../../src/pages/settingsHomePage';
+import { NetworkInternetPage } from '../../src/pages/networkInternetPage';
 
 describe('Network & internet', () => {
   it('toggles airplane mode on and back off', async () => {

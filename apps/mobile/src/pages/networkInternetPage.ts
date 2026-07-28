@@ -1,5 +1,5 @@
 import { browser } from '@wdio/globals';
-import { BasePage } from './base.page';
+import { BasePage } from './basePage';
 
 export class NetworkInternetPage extends BasePage {
   private readonly airplaneModeSwitch =
@@ -27,7 +27,7 @@ export class NetworkInternetPage extends BasePage {
     if (matches.length !== 1) {
       throw new Error(
         `Expected exactly 1 "Airplane mode" switch, found ${matches.length}. The Settings UI likely ` +
-          'changed on this Android version/OEM skin — update the locator in network-internet.page.ts.',
+          'changed on this Android version/OEM skin — update the locator in networkInternetPage.ts.',
       );
     }
     return matches[0];

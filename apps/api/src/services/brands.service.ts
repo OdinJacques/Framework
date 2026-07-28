@@ -1,5 +1,5 @@
 import type { Brand } from '@framework/shared-types';
-import { ApiClient } from '../clients/api-client';
+import { ApiClient } from '../clients/apiClient';
 
 interface BrandsListResponseBody {
   responseCode: number;

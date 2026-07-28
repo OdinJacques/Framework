@@ -1,7 +1,7 @@
 import { describe, it, expect, beforeEach, afterEach } from 'vitest';
 import type { DatabaseSync } from 'node:sqlite';
 import { demoUser, sampleProducts } from '@framework/test-data';
-import { createDatabase } from '../src/db-client';
+import { createDatabase } from '../src/dbClient';
 import { seed } from '../db/seed';
 
 describe('queries', () => {
